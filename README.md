@@ -34,6 +34,18 @@ Usage
 
     Drive and the overlay will display your live inputs in real time.
 
+Customization
+
+You can customize the steering wheel image by replacing the existing file with your own PNG.
+
+    Use your own image file in .png format
+
+    Name it exactly steering_wheel.png
+
+    Replace the old file with the new one using the same name.
+
+Once replaced, METRICORE will use your custom steering wheel image automatically.
+
 Notes
 
 METRICORE is focused mainly on GTA V Enhanced, but input support depends on how your system exposes controller or keyboard input. It is made to be simple, lightweight, and instantly usable.
