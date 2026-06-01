@@ -24,7 +24,7 @@ Features
 
 Usage
 
-    Open METRICORE.
+    Open "run.bat".
 
     Launch GTA V Enhanced.
 
