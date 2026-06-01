@@ -6,6 +6,7 @@ Overview
 <img width="566" height="186" alt="image" src="https://github.com/user-attachments/assets/45609fb1-21a9-4367-9541-fe5aacf8422b" />
 
 
+
 METRICORE is a ready-to-run racing input overlay designed to show live driving inputs in a clean, minimal UI. It opens as-is, can be moved using the bar at the bottom, closed with the X in the top-left, and works out of the box with no extra setup required.
 Features
 
