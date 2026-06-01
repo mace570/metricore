@@ -3,6 +3,9 @@
 A lightweight racing input overlay built mainly for GTA V Enhanced, with support for both controller and keyboard input.
 Overview
 
+<img width="566" height="186" alt="image" src="https://github.com/user-attachments/assets/45609fb1-21a9-4367-9541-fe5aacf8422b" />
+
+
 METRICORE is a ready-to-run racing input overlay designed to show live driving inputs in a clean, minimal UI. It opens as-is, can be moved using the bar at the bottom, closed with the X in the top-left, and works out of the box with no extra setup required.
 Features
 
@@ -49,5 +52,3 @@ Once replaced, METRICORE will use your custom steering wheel image automatically
 Notes
 
 METRICORE is focused mainly on GTA V Enhanced, but input support depends on how your system exposes controller or keyboard input. It is made to be simple, lightweight, and instantly usable.
-
-<img width="566" height="186" alt="image" src="https://github.com/user-attachments/assets/c90a0045-4dd2-43bb-8a4d-78bb926e1e45" />
