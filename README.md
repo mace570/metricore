@@ -49,3 +49,5 @@ Once replaced, METRICORE will use your custom steering wheel image automatically
 Notes
 
 METRICORE is focused mainly on GTA V Enhanced, but input support depends on how your system exposes controller or keyboard input. It is made to be simple, lightweight, and instantly usable.
+
+<img width="566" height="186" alt="image" src="https://github.com/user-attachments/assets/c90a0045-4dd2-43bb-8a4d-78bb926e1e45" />
