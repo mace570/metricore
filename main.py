@@ -137,8 +137,8 @@ BAR_W = 120
 GRAPH_W = 280
 GRAPH_H = 110
 HISTORY_LEN = 240  # ~4 s at 60 Hz
-WHEEL_SIZE = 58
-STEER_RANGE_DEG = 270  # lock-to-lock
+WHEEL_SIZE = 84
+STEER_RANGE_DEG = 180  # lock-to-lock
 FONT = ("Consolas", 13, "bold")
 FONT_SMALL = ("Consolas", 8)
 INPUT_HINT_FONT = ("Consolas", 7)
@@ -404,17 +404,21 @@ class WindowControls:
     BTN_BG = "#2b2b2b"
     BTN_HOVER = "#3a3a3a"
     BTN_CLOSE_HOVER = "#c42b1c"
+    BTN_LOCK_HOVER = "#5a5a5a"
     BTN_FG = "#cccccc"
     BTN_FONT = ("Segoe UI", 10)
 
-    def __init__(self, parent: tk.Frame, root: tk.Tk):
+    def __init__(self, parent: tk.Frame, root: tk.Tk, on_lock_toggle: callable = None):
         self.root = root
+        self.on_lock_toggle = on_lock_toggle
         self.frame = tk.Frame(parent, bg=BG)
         self.frame.pack(side="right")
+        self.is_locked = False
 
+        self.lock_btn = self._make_button("🔓", self._toggle_lock, lock=True)
         self.close_btn = self._make_button("✕", self._close, close=True)
 
-    def _make_button(self, text: str, command: callable, *, close: bool = False):
+    def _make_button(self, text: str, command: callable, *, close: bool = False, lock: bool = False):
         btn = tk.Label(
             self.frame,
             text=text,
@@ -428,12 +432,15 @@ class WindowControls:
         )
         btn.pack(side="left")
         btn.bind("<Button-1>", lambda _e: command())
-        btn.bind("<Enter>", lambda _e: btn.config(bg=self.BTN_CLOSE_HOVER if close else self.BTN_HOVER))
+        btn.bind("<Enter>", lambda _e: btn.config(bg=self.BTN_CLOSE_HOVER if close else self.BTN_LOCK_HOVER))
         btn.bind("<Leave>", lambda _e: btn.config(bg=self.BTN_BG))
         return btn
 
-    def _minimize(self):
-        self.root.iconify()
+    def _toggle_lock(self):
+        self.is_locked = not self.is_locked
+        self.lock_btn.config(text="🔒" if self.is_locked else "🔓")
+        if self.on_lock_toggle:
+            self.on_lock_toggle(self.is_locked)
 
     def _close(self):
         self.root.destroy()
@@ -499,6 +506,8 @@ def _load_wheel_image(path: Path, size: int) -> Image.Image:
 class SteeringWheel:
     """Rotating wheel graphic mapped to ±270° (540° lock-to-lock)."""
 
+    SMOOTH_FACTOR = 0.12  # 0-1, higher = smoother/slower, lower = faster/snappier
+
     def __init__(self, parent: tk.Frame, *, column: int = 1, start_row: int = 0):
         self._half_range = STEER_RANGE_DEG / 2
         self._cx = WHEEL_SIZE // 2
@@ -509,6 +518,7 @@ class SteeringWheel:
         self._photo = None
         self._image_source = None
         self._use_image = False
+        self._current_steering = 0.0  # Smoothed steering value
 
         wheel_path = _find_wheel_image()
         if wheel_path and HAS_PIL:
@@ -521,14 +531,17 @@ class SteeringWheel:
         self.canvas = tk.Canvas(
             parent, width=WHEEL_SIZE, height=WHEEL_SIZE, bg=BG, highlightthickness=0
         )
-        self.canvas.grid(row=start_row, column=column, rowspan=3, sticky="ne", padx=(0, 8), pady=(20, 0))
+        self.canvas.grid(row=start_row, column=column, rowspan=3, sticky="n", padx=(0, 8), pady=(20, 0))
         self._draw(0.0)
 
     def widget(self):
         return self.canvas
 
     def set_steering(self, value: float):
-        self._draw(max(-1.0, min(1.0, value)))
+        target = max(-1.0, min(1.0, value))
+        # Interpolate smoothly towards target
+        self._current_steering += (target - self._current_steering) * self.SMOOTH_FACTOR
+        self._draw(self._current_steering)
 
     def _point(self, radius: float, angle_rad: float) -> tuple[float, float]:
         return (
@@ -610,15 +623,29 @@ class InputOverlay:
 
         self._drag_x = 0
         self._drag_y = 0
+        self._dragging_enabled = True  # Start enabled (unlocked)
+        self._main_frame = None
 
         frame = tk.Frame(self.root, bg=BG, padx=10, pady=6)
         frame.pack()
+        self._main_frame = frame
 
         top_bar = tk.Frame(frame, bg=BG)
         top_bar.pack(fill="x", pady=(0, 2))
 
         self.brand = MetricoreBrand(top_bar)
-        WindowControls(top_bar, self.root)
+        
+        self.controls = WindowControls(top_bar, self.root, on_lock_toggle=self._on_lock_toggle)
+        
+        self.time_label = tk.Label(
+            top_bar,
+            text="00:00:00",
+            font=TITLE_FONT,
+            fg=TITLE_COLOR,
+            bg=BG,
+            padx=12,
+        )
+        self.time_label.pack(side="right", padx=(12, 0))
 
         main_row = tk.Frame(frame, bg=BG)
         main_row.pack(anchor="w")
@@ -642,12 +669,25 @@ class InputOverlay:
 
         bottom_bar = tk.Frame(frame, bg=BG)
         bottom_bar.pack(fill="x", pady=(6, 0))
-        DragHandle(bottom_bar, self._start_drag, self._on_drag)
 
         self.root.protocol("WM_DELETE_WINDOW", self.root.destroy)
 
         self._place_default()
+        self._setup_drag_bindings()
         self._tick()
+
+    def _setup_drag_bindings(self):
+        """Setup drag bindings on root window."""
+        if self._dragging_enabled:
+            self.root.bind("<Button-1>", self._start_drag)
+            self.root.bind("<B1-Motion>", self._on_drag)
+        else:
+            self.root.unbind("<Button-1>")
+            self.root.unbind("<B1-Motion>")
+
+    def _on_lock_toggle(self, is_locked: bool):
+        self._dragging_enabled = not is_locked
+        self._setup_drag_bindings()
 
     def _place_default(self):
         self.root.update_idletasks()
@@ -678,6 +718,10 @@ class InputOverlay:
         self.wheel.set_steering(inputs["steering"])
 
         self.trace.push(inputs["throttle"], inputs["brake"])
+
+        # Update time display
+        current_time = time.strftime("%H:%M:%S")
+        self.time_label.config(text=current_time)
 
         self.root.after(UPDATE_MS, self._tick)
 
